@@ -4,7 +4,7 @@ import OpenMatCard from '../components/OpenMatCard';
 
 const FavoritesPage = () => {
     const [favorites, setFavorites] = useState([]);
-    const userId = 'USER_ID'; // Remplacez par l'identifiant de l'utilisateur actuel
+    const userId = 'USER_ID';
 
     useEffect(() => {
         const fetchFavorites = async () => {

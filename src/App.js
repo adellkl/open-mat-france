@@ -7,7 +7,8 @@ import DetailPage from './pages/DetailPage';
 import AddOpenMatPage from './pages/AddOpenMatPage';
 import AboutPage from './pages/AboutPage';
 import LoginPage from './pages/LoginPage'; // Importer le composant LoginPage
-import PrivateRoute from './components/PrivateRoute'; // Importer le composant PrivateRoute
+import PrivateRoute from './components/PrivateRoute';
+import Error404 from './pages/Error404'
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
             <Route path="/detail/:id" element={<DetailPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="*" element={<Error404 />} />
             <Route element={<PrivateRoute />}>
               <Route path="/add" element={<AddOpenMatPage />} />
             </Route>
