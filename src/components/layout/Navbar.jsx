@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { IconButton, Drawer, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
 import { supabase } from '../../services/api'; // Assurez-vous d'importer supabase
@@ -9,6 +9,7 @@ const Navbar = () => {
     const [user, setUser] = useState(null);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const location = useLocation();
+    const navigate = useNavigate();
 
     useEffect(() => {
         const session = supabase.auth.getSession();
@@ -44,6 +45,7 @@ const Navbar = () => {
         await supabase.auth.signOut();
         setUser(null);
         setConfirmOpen(false);
+        navigate('/'); // Redirige vers la page principale après la déconnexion
     };
 
     const cancelLogout = () => {
@@ -176,7 +178,7 @@ const Navbar = () => {
                 </Drawer>
             </div>
 
-            {/* Confirmation Dialog */}
+
             <Dialog
                 open={confirmOpen}
                 onClose={cancelLogout}
