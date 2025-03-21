@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { MagnifyingGlassIcon, PlusCircleIcon, AdjustmentsHorizontalIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, PlusCircleIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import OpenMatCard from '../components/OpenMatCard';
 import { supabase } from '../services/supabaseClient';
 import { Typography } from '@mui/material';
-import { FaEnvelope, FaFilter } from 'react-icons/fa';
+import { FaFilter } from 'react-icons/fa';
 import FilterModal from '../components/FilterModal';
 
 const ITEMS_PER_PAGE = 6;
@@ -16,7 +16,6 @@ const HomePage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [showFilters, setShowFilters] = useState(false);
     const [filters, setFilters] = useState({
         city: '',
         level: '',
@@ -104,11 +103,6 @@ const HomePage = () => {
         };
     }, [filters]);
 
-    const getUniqueOptions = (field) => {
-        const options = [...new Set(openMats.map(item => item[field]))].filter(Boolean);
-        return options.sort();
-    };
-
     const applyFilters = useCallback(() => {
         let results = [...openMats];
 
@@ -145,24 +139,6 @@ const HomePage = () => {
     useEffect(() => {
         applyFilters();
     }, [searchTerm, filters, applyFilters]);
-
-    const handleFilterChange = (e) => {
-        const { name, value } = e.target;
-        setFilters(prev => ({
-            ...prev,
-            [name]: value
-        }));
-    };
-
-    const resetFilters = () => {
-        setSearchTerm('');
-        setFilters({
-            city: '',
-            level: '',
-            date: '',
-            discipline: ''
-        });
-    };
 
     const indexOfLastOpenMat = currentPage * ITEMS_PER_PAGE;
     const indexOfFirstOpenMat = indexOfLastOpenMat - ITEMS_PER_PAGE;

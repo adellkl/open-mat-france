@@ -11,7 +11,7 @@ import { OfflineProvider } from './contexts/OfflineContext';
 import { AccessibilitySettings } from './components/AccessibilitySettings';
 import { offlineService } from './services/offlineService';
 import theme from './theme';
-import Navbar from './components/layout/Navbar';
+import Navbar from './components/Navbar';
 import Footer from './components/layout/Footer';
 import HomePage from './pages/HomePage';
 import AboutPage from './pages/AboutPage';

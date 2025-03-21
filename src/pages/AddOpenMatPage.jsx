@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { Helmet } from 'react-helmet';
 import { createOpenMat, supabase } from '../services/api';
 
@@ -30,32 +29,12 @@ const AddOpenMatPage = () => {
         image_url: ''
     });
 
-    const UNSPLASH_ACCESS_KEY = '-HGkZrAgGewsitVukPLt3GzYWYCTiwUBih7CfnPStj4';
-
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({
             ...formData,
             [name]: value
         });
-    };
-
-    const fetchRandomImage = async (query) => {
-        try {
-            const response = await axios.get('https://api.unsplash.com/photos/random', {
-                headers: {
-                    Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}`
-                },
-                params: {
-                    query: query,
-                    orientation: 'landscape'
-                }
-            });
-            return response.data.urls.regular;
-        } catch (error) {
-            console.error('Erreur lors de la récupération de l\'image :', error);
-            return null;
-        }
     };
 
     const handleImageChange = (e) => {
@@ -93,7 +72,7 @@ const AddOpenMatPage = () => {
 
             console.log('Tentative d\'upload du fichier:', { fileName, filePath });
 
-            const { error: uploadError, data } = await supabase.storage
+            const { error: uploadError } = await supabase.storage
                 .from('open-mat-images')
                 .upload(filePath, file, {
                     contentType: file.type,
@@ -151,7 +130,7 @@ const AddOpenMatPage = () => {
             }
 
             // Vérifier si l'utilisateur est connecté
-            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            const { error: sessionError } = await supabase.auth.getSession();
 
             if (sessionError) {
                 throw new Error('Erreur d\'authentification. Veuillez vous connecter.');

@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaUsers, FaCalendarAlt, FaMapMarkerAlt, FaGraduationCap, FaHeart, FaHandshake, FaEnvelope, FaCode, FaShieldAlt } from 'react-icons/fa';
+import { FaUsers, FaCalendarAlt, FaMapMarkerAlt, FaGraduationCap, FaHeart, FaHandshake, FaEnvelope, FaShieldAlt } from 'react-icons/fa';
 import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
@@ -51,12 +51,6 @@ const AboutPage = () => {
     const featuresInView = useInView(featuresRef, { once: true, margin: "-100px" });
     const privacyInView = useInView(privacyRef, { once: true, margin: "-100px" });
     const contactInView = useInView(contactRef, { once: true, margin: "-100px" });
-
-    const fadeInUp = {
-        initial: { opacity: 0, y: 20 },
-        animate: { opacity: 1, y: 0 },
-        transition: { duration: 0.5 }
-    };
 
     return (
         <>
