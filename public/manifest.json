@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "OpenMat France",
+  "name": "OpenMat France - Trouvez des Open Mats près de chez vous",
   "icons": [
     {
       "src": "favicon.ico",
@@ -21,5 +21,18 @@
   "start_url": ".",
   "display": "standalone",
   "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "background_color": "#ffffff",
+  "description": "Plateforme pour trouver et organiser des Open Mats de Jiu-Jitsu Brésilien en France",
+  "lang": "fr-FR",
+  "orientation": "portrait",
+  "categories": ["sports", "jiu-jitsu", "open-mat", "france"],
+  "screenshots": [
+    {
+      "src": "screenshot1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "platform": "wide",
+      "label": "Page d'accueil OpenMat France"
+    }
+  ]
 }

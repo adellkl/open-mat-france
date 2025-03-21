@@ -1,3 +1,11 @@
 # https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
+Allow: /
+Allow: /about
+Allow: /add
+Allow: /login
+Disallow: /admin/
+Disallow: /private/
+Disallow: /api/
+
+Sitemap: https://openmatfrance.fr/sitemap.xml
