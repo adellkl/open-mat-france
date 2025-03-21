@@ -4,8 +4,18 @@ Allow: /
 Allow: /about
 Allow: /add
 Allow: /login
+Allow: /paris
+Allow: /lyon
+Allow: /marseille
+Allow: /guide
+Allow: /contact
+Allow: /sitemap.xml
 Disallow: /admin/
 Disallow: /private/
 Disallow: /api/
+Disallow: /login
+Disallow: /register
+Disallow: /profile
+Disallow: /settings
 
 Sitemap: https://www.openmatfrance.fr/sitemap.xml
