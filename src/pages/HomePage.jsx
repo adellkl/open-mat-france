@@ -3,66 +3,106 @@ import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { MagnifyingGlassIcon, PlusCircleIcon, AdjustmentsHorizontalIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import OpenMatCard from '../components/OpenMatCard';
-import { getOpenMats } from '../services/api';
-import { supabase } from '../services/api'; // Assurez-vous d'importer supabase
-import { Typography } from '@mui/material'; // Supprimez 'Container' si inutilisé
+import { supabase } from '../services/supabaseClient';
+import { Typography } from '@mui/material';
+import { FaEnvelope, FaFilter } from 'react-icons/fa';
+import FilterModal from '../components/FilterModal';
+
+const ITEMS_PER_PAGE = 6;
 
 const HomePage = () => {
     const [openMats, setOpenMats] = useState([]);
     const [filteredOpenMats, setFilteredOpenMats] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [showFilters, setShowFilters] = useState(false);
     const [filters, setFilters] = useState({
-        discipline: '',
-        level: '',
         city: '',
-        fromDate: '',
-        toDate: ''
+        level: '',
+        date: '',
+        discipline: ''
     });
     const [currentPage, setCurrentPage] = useState(1);
     const [user, setUser] = useState(null);
-    const openMatsPerPage = 6;
+    const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
     useEffect(() => {
+        let mounted = true;
+
         const fetchOpenMats = async () => {
             try {
-                setLoading(true);
-                const data = await getOpenMats();
-                setOpenMats(data);
-                setFilteredOpenMats(data);
-            } catch (err) {
-                console.error('Erreur lors du chargement des Open Mats:', err);
+                console.log('Début de fetchOpenMats...');
+                let query = supabase
+                    .from('open_mats')
+                    .select('*')
+                    .order('date', { ascending: true });
+
+                // Appliquer les filtres
+                if (filters.city) {
+                    query = query.ilike('city', `%${filters.city}%`);
+                }
+                if (filters.level) {
+                    query = query.eq('level', filters.level);
+                }
+                if (filters.date) {
+                    query = query.eq('date', filters.date);
+                }
+                if (filters.discipline) {
+                    query = query.eq('discipline', filters.discipline);
+                }
+
+                const { data, error } = await query;
+
+                if (error) throw error;
+                console.log('Open Mats récupérés avec succès:', data);
+                if (mounted) {
+                    setOpenMats(data || []);
+                    setFilteredOpenMats(data || []);
+                }
+            } catch (error) {
+                console.error('Erreur dans fetchOpenMats:', error);
+                if (mounted) {
+                    setError(error.message);
+                }
             } finally {
-                setLoading(false);
+                if (mounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        const fetchUser = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (mounted && session) {
+                    setUser(session.user);
+                }
+            } catch (error) {
+                console.error('Erreur lors de la récupération de la session:', error);
             }
         };
 
         fetchOpenMats();
-    }, []);
-
-    useEffect(() => {
-        const fetchUser = async () => {
-            const { data: { session }, } = await supabase.auth.getSession();
-            if (session) {
-                setUser(session.user);
-            }
-        };
-
         fetchUser();
 
         const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_OUT') {
-                setUser(null);
-            } else if (event === 'SIGNED_IN') {
-                setUser(session.user);
+            if (mounted) {
+                if (event === 'SIGNED_OUT') {
+                    setUser(null);
+                } else if (event === 'SIGNED_IN') {
+                    setUser(session.user);
+                }
             }
         });
 
         return () => {
-            authListener.subscription.unsubscribe();
+            mounted = false;
+            if (authListener?.subscription) {
+                authListener.subscription.unsubscribe();
+            }
         };
-    }, []);
+    }, [filters]);
 
     const getUniqueOptions = (field) => {
         const options = [...new Set(openMats.map(item => item[field]))].filter(Boolean);
@@ -94,12 +134,8 @@ const HomePage = () => {
             results = results.filter(mat => mat.city === filters.city);
         }
 
-        if (filters.fromDate) {
-            results = results.filter(mat => new Date(mat.date) >= new Date(filters.fromDate));
-        }
-
-        if (filters.toDate) {
-            results = results.filter(mat => new Date(mat.date) <= new Date(filters.toDate));
+        if (filters.date) {
+            results = results.filter(mat => new Date(mat.date) === new Date(filters.date));
         }
 
         setFilteredOpenMats(results);
@@ -121,19 +157,26 @@ const HomePage = () => {
     const resetFilters = () => {
         setSearchTerm('');
         setFilters({
-            discipline: '',
-            level: '',
             city: '',
-            fromDate: '',
-            toDate: ''
+            level: '',
+            date: '',
+            discipline: ''
         });
     };
 
-    const indexOfLastOpenMat = currentPage * openMatsPerPage;
-    const indexOfFirstOpenMat = indexOfLastOpenMat - openMatsPerPage;
+    const indexOfLastOpenMat = currentPage * ITEMS_PER_PAGE;
+    const indexOfFirstOpenMat = indexOfLastOpenMat - ITEMS_PER_PAGE;
     const currentOpenMats = filteredOpenMats.slice(indexOfFirstOpenMat, indexOfLastOpenMat);
 
-    const paginate = (pageNumber) => setCurrentPage(pageNumber);
+    const paginate = (pageNumber) => {
+        setCurrentPage(pageNumber);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleApplyFilters = (newFilters) => {
+        setFilters(newFilters);
+        applyFilters();
+    };
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -196,123 +239,25 @@ const HomePage = () => {
                     </div>
 
                     <button
-                        onClick={() => setShowFilters(!showFilters)}
+                        onClick={() => setIsFilterModalOpen(true)}
                         className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                     >
-                        <AdjustmentsHorizontalIcon className="mr-2 h-5 w-5 text-gray-400" />
+                        <FaFilter className="mr-2 h-5 w-5 text-gray-400" />
                         Filtres
                     </button>
                 </div>
-
-                {showFilters && (
-                    <div className="mt-4 p-4 bg-white shadow rounded-lg">
-                        <div className="grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-6">
-                            <div className="sm:col-span-2">
-                                <label htmlFor="discipline" className="block text-sm font-medium text-gray-700">
-                                    Discipline
-                                </label>
-                                <select
-                                    id="discipline"
-                                    name="discipline"
-                                    value={filters.discipline}
-                                    onChange={handleFilterChange}
-                                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
-                                >
-                                    <option value="">Toutes les disciplines</option>
-                                    {getUniqueOptions('discipline').map(option => (
-                                        <option key={option} value={option}>{option}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="sm:col-span-2">
-                                <label htmlFor="level" className="block text-sm font-medium text-gray-700">
-                                    Niveau
-                                </label>
-                                <select
-                                    id="level"
-                                    name="level"
-                                    value={filters.level}
-                                    onChange={handleFilterChange}
-                                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
-                                >
-                                    <option value="">Tous les niveaux</option>
-                                    {getUniqueOptions('level').map(option => (
-                                        <option key={option} value={option}>{option}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="sm:col-span-2">
-                                <label htmlFor="city" className="block text-sm font-medium text-gray-700">
-                                    Ville
-                                </label>
-                                <select
-                                    id="city"
-                                    name="city"
-                                    value={filters.city}
-                                    onChange={handleFilterChange}
-                                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
-                                >
-                                    <option value="">Toutes les villes</option>
-                                    {getUniqueOptions('city').map(option => (
-                                        <option key={option} value={option}>{option}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="sm:col-span-3">
-                                <label htmlFor="fromDate" className="block text-sm font-medium text-gray-700">
-                                    Date de début
-                                </label>
-                                <input
-                                    type="date"
-                                    id="fromDate"
-                                    name="fromDate"
-                                    value={filters.fromDate}
-                                    onChange={handleFilterChange}
-                                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
-                                />
-                            </div>
-
-                            <div className="sm:col-span-3">
-                                <label htmlFor="toDate" className="block text-sm font-medium text-gray-700">
-                                    Date de fin
-                                </label>
-                                <input
-                                    type="date"
-                                    id="toDate"
-                                    name="toDate"
-                                    value={filters.toDate}
-                                    onChange={handleFilterChange}
-                                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="mt-4 flex justify-end">
-                            <button
-                                type="button"
-                                onClick={resetFilters}
-                                className="mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                            >
-                                Réinitialiser
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setShowFilters(false)}
-                                className="px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                            >
-                                Appliquer
-                            </button>
-                        </div>
-                    </div>
-                )}
 
                 <div className="mt-8">
                     {loading ? (
                         <div className="flex justify-center items-center h-64">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+                        </div>
+                    ) : error ? (
+                        <div className="text-center py-12">
+                            <h3 className="text-lg font-medium text-red-900">Une erreur est survenue</h3>
+                            <p className="mt-2 text-sm text-red-500">
+                                {error}
+                            </p>
                         </div>
                     ) : filteredOpenMats.length === 0 ? (
                         <div className="text-center py-12">
@@ -364,7 +309,7 @@ const HomePage = () => {
                                         <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
                                     </button>
 
-                                    {Array.from({ length: Math.ceil(filteredOpenMats.length / openMatsPerPage) }, (_, i) => (
+                                    {Array.from({ length: Math.ceil(filteredOpenMats.length / ITEMS_PER_PAGE) }, (_, i) => (
                                         <button
                                             key={i}
                                             onClick={() => paginate(i + 1)}
@@ -380,7 +325,7 @@ const HomePage = () => {
 
                                     <button
                                         onClick={() => paginate(currentPage + 1)}
-                                        disabled={currentPage === Math.ceil(filteredOpenMats.length / openMatsPerPage)}
+                                        disabled={currentPage === Math.ceil(filteredOpenMats.length / ITEMS_PER_PAGE)}
                                         className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
                                     >
                                         <span className="sr-only">Next</span>
@@ -392,6 +337,13 @@ const HomePage = () => {
                     )}
                 </div>
             </div>
+
+            <FilterModal
+                isOpen={isFilterModalOpen}
+                onClose={() => setIsFilterModalOpen(false)}
+                onApplyFilters={handleApplyFilters}
+                filters={filters}
+            />
         </div>
     );
 };
