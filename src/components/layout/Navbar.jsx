@@ -1,150 +1,205 @@
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { FaBars, FaTimes, FaUser, FaSignOutAlt, FaHome, FaInfoCircle, FaPlus } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import { IconButton, Drawer, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
+import { supabase } from '../../services/api'; // Assurez-vous d'importer supabase
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const { user, signOut } = useAuth();
+    const [user, setUser] = useState(null);
+    const [confirmOpen, setConfirmOpen] = useState(false);
     const location = useLocation();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const session = supabase.auth.getSession();
+        if (session) {
+            setUser(session.user);
+        }
+
+        const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_OUT') {
+                setUser(null);
+            } else if (event === 'SIGNED_IN') {
+                setUser(session.user);
+            }
+        });
+
+        return () => {
+            authListener.subscription.unsubscribe();
+        };
+    }, []);
+
+    const toggleDrawer = (open) => (event) => {
+        if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
+            return;
+        }
+        setIsOpen(open);
+    };
+
+    const handleLogout = async () => {
+        setConfirmOpen(true);
+    };
+
+    const confirmLogout = async () => {
+        await supabase.auth.signOut();
+        setUser(null);
+        setConfirmOpen(false);
+        navigate('/'); // Redirige vers la page principale après la déconnexion
+    };
+
+    const cancelLogout = () => {
+        setConfirmOpen(false);
+    };
 
     const navItems = [
-        { name: 'Accueil', path: '/', icon: <FaHome className="w-5 h-5" /> },
-        { name: 'À Propos', path: '/about', icon: <FaInfoCircle className="w-5 h-5" /> },
-        { name: 'Ajouter', path: '/add', icon: <FaPlus className="w-5 h-5" /> },
+        { text: 'Accueil', path: '/' },
+        ...(user ? [{ text: 'Ajouter un Open Mat', path: '/add' }] : []),
+        { text: 'À propos', path: '/about' }
     ];
-
-    const toggleMenu = () => {
-        setIsOpen(!isOpen);
-        document.body.style.overflow = isOpen ? 'auto' : 'hidden';
-    };
 
     return (
         <nav className="bg-white shadow-md">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between h-16">
+                <div className="flex justify-between items-center h-16">
                     {/* Logo */}
-                    <div className="flex-shrink-0 flex items-center">
-                        <Link to="/" className="text-2xl font-bold text-black">
+                    <Link to="/" className="text-xl font-bold text-primary-600">
+                        OpenMat France
+                    </Link>
+
+                    {/* Navigation Desktop */}
+                    <div className="hidden sm:flex space-x-4">
+                        {navItems.map((item, index) => (
+                            <Link
+                                key={index}
+                                to={item.path}
+                                className={`text-sm font-medium ${location.pathname === item.path ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-700 hover:text-green-600'} mt-2`}
+                            >
+                                {item.text}
+                            </Link>
+                        ))}
+                        {user ? (
+                            <Button
+                                variant="outlined"
+                                color="primary"
+                                onClick={handleLogout}
+                            >
+                                Déconnexion
+                            </Button>
+                        ) : (
+                            <Button
+                                component={Link}
+                                to="/login"
+                                variant="outlined"
+                                color="primary"
+                            >
+                                Connexion
+                            </Button>
+                        )}
+                    </div>
+
+                    {/* Mobile Menu Toggle */}
+                    <div className="sm:hidden">
+                        <IconButton
+                            size="large"
+                            edge="start"
+                            color="inherit"
+                            aria-label="menu"
+                            onClick={toggleDrawer(true)}
+                        >
+                            <Bars3Icon className="h-6 w-6" />
+                        </IconButton>
+                    </div>
+                </div>
+
+                {/* Mobile Menu */}
+                <Drawer
+                    anchor="right"
+                    open={isOpen}
+                    onClose={toggleDrawer(false)}
+                    PaperProps={{
+                        sx: {
+                            width: '70%',
+                            height: '100%',
+                            right: 0,
+                            left: 'auto',
+                            background: 'rgba(255, 255, 255, 0.9)',
+                            backdropFilter: 'blur(10px)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            padding: '20px',
+                        }
+                    }}
+                >
+                    <div className="flex justify-between items-center mb-8">
+                        <Link
+                            to="/"
+                            className="text-xl font-bold text-primary-600"
+                            onClick={toggleDrawer(false)}
+                        >
                             OpenMat France
                         </Link>
+                        <IconButton onClick={toggleDrawer(false)}>
+                            <XMarkIcon className="h-6 w-6" />
+                        </IconButton>
                     </div>
 
-                    {/* Menu Desktop */}
-                    <div className="hidden md:flex md:items-center md:space-x-8 md:absolute md:left-1/2 md:transform md:-translate-x-1/2">
-                        {navItems.map((item) => (
+                    <div className="flex flex-col space-y-4">
+                        {navItems.map((item, index) => (
                             <Link
-                                key={item.path}
+                                key={index}
                                 to={item.path}
-                                className={`text-sm font-medium transition-colors duration-200 ${location.pathname === item.path
-                                    ? 'text-black'
-                                    : 'text-gray-500 hover:text-black'
-                                    }`}
+                                onClick={toggleDrawer(false)}
+                                className={`text-lg font-medium ${location.pathname === item.path ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-700 hover:text-primary-600'} py-2 border-b border-gray-200`}
                             >
-                                {item.name}
-                            </Link>
-                        ))}
-                    </div>
-
-                    {/* Bouton Menu Mobile */}
-                    <div className="md:hidden flex items-center">
-                        <button
-                            onClick={toggleMenu}
-                            className="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-black focus:outline-none"
-                            aria-expanded="false"
-                        >
-                            <span className="sr-only">Ouvrir le menu</span>
-                            {isOpen ? (
-                                <FaTimes className="block h-6 w-6" />
-                            ) : (
-                                <FaBars className="block h-6 w-6" />
-                            )}
-                        </button>
-                    </div>
-
-                    {/* User Menu Desktop */}
-                    <div className="hidden md:flex md:items-center">
-                        {user ? (
-                            <div className="flex items-center space-x-4">
-                                <span className="text-sm text-gray-500">{user.email}</span>
-                                <button
-                                    onClick={signOut}
-                                    className="text-sm font-medium text-gray-500 hover:text-black transition-colors duration-200"
-                                >
-                                    <FaSignOutAlt className="w-5 h-5" />
-                                </button>
-                            </div>
-                        ) : (
-                            <Link
-                                to="/login"
-                                className="text-sm font-medium text-gray-500 hover:text-black transition-colors duration-200"
-                            >
-                                <FaUser className="w-5 h-5" />
-                            </Link>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Menu Mobile */}
-            <div className={`md:hidden ${isOpen ? 'block' : 'hidden'}`}>
-                <div className="fixed inset-0 bg-white z-50 flex flex-col">
-                    {/* En-tête avec croix */}
-                    <div className="flex justify-end p-4">
-                        <button
-                            onClick={toggleMenu}
-                            className="text-gray-500 hover:text-black focus:outline-none"
-                        >
-                            <FaTimes className="h-8 w-8" />
-                        </button>
-                    </div>
-
-                    {/* Contenu aligné à gauche */}
-                    <div className="flex-1 flex flex-col px-6 space-y-6">
-                        {navItems.map((item) => (
-                            <Link
-                                key={item.path}
-                                to={item.path}
-                                className={`flex items-center py-3 text-lg font-medium ${location.pathname === item.path
-                                        ? 'text-black bg-gray-50'
-                                        : 'text-gray-500 hover:text-black hover:bg-gray-50'
-                                    }`}
-                                onClick={() => setIsOpen(false)}
-                            >
-                                <span className="mr-3">{item.icon}</span>
-                                {item.name}
+                                {item.text}
                             </Link>
                         ))}
                         {user ? (
-                            <div className="py-3 border-t border-gray-200">
-                                <div className="flex items-center text-sm text-gray-500 mb-2">
-                                    <FaUser className="w-5 h-5 mr-3" />
-                                    {user.email}
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        signOut();
-                                        setIsOpen(false);
-                                    }}
-                                    className="flex items-center text-sm font-medium text-gray-500 hover:text-black"
-                                >
-                                    <FaSignOutAlt className="w-5 h-5 mr-3" />
-                                    Se déconnecter
-                                </button>
-                            </div>
-                        ) : (
-                            <Link
-                                to="/login"
-                                className="flex items-center py-3 text-lg font-medium text-gray-500 hover:text-black hover:bg-gray-50"
-                                onClick={() => setIsOpen(false)}
+                            <Button
+                                variant="outlined"
+                                color="primary"
+                                onClick={handleLogout}
                             >
-                                <FaUser className="w-5 h-5 mr-3" />
-                                Se connecter
-                            </Link>
+                                Déconnexion
+                            </Button>
+                        ) : (
+                            <Button
+                                component={Link}
+                                to="/login"
+                                variant="outlined"
+                                color="primary"
+                                onClick={toggleDrawer(false)}
+                            >
+                                Connexion
+                            </Button>
                         )}
                     </div>
-                </div>
+                </Drawer>
             </div>
+
+
+            <Dialog
+                open={confirmOpen}
+                onClose={cancelLogout}
+                aria-labelledby="alert-dialog-title"
+                aria-describedby="alert-dialog-description"
+            >
+                <DialogTitle id="alert-dialog-title">{"Confirmer la déconnexion"}</DialogTitle>
+                <DialogContent>
+                    <DialogContentText id="alert-dialog-description">
+                        Êtes-vous sûr de vouloir vous déconnecter ?
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={cancelLogout} color="primary">
+                        Annuler
+                    </Button>
+                    <Button onClick={confirmLogout} color="primary" autoFocus>
+                        Confirmer
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </nav>
     );
 };
