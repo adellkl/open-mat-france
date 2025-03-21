@@ -8,4 +8,4 @@ Disallow: /admin/
 Disallow: /private/
 Disallow: /api/
 
-Sitemap: https://openmatfrance.fr/sitemap.xml
+Sitemap: https://www.openmatfrance.fr/sitemap.xml
