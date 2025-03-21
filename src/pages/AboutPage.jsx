@@ -7,32 +7,32 @@ import { Helmet } from 'react-helmet-async';
 const AboutPage = () => {
     const features = [
         {
-            icon: <FaUsers className="w-8 h-8 text-primary-600" />,
+            icon: <FaUsers className="w-8 h-8 text-gray-600" />,
             title: 'Communauté Active',
             description: 'Rejoignez une communauté passionnée de pratiquants de JJB et Luta Livre.'
         },
         {
-            icon: <FaCalendarAlt className="w-8 h-8 text-primary-600" />,
+            icon: <FaCalendarAlt className="w-8 h-8 text-gray-600" />,
             title: 'Événements Réguliers',
             description: 'Découvrez des Open Mats organisés régulièrement dans toute la France.'
         },
         {
-            icon: <FaMapMarkerAlt className="w-8 h-8 text-primary-600" />,
+            icon: <FaMapMarkerAlt className="w-8 h-8 text-gray-600" />,
             title: 'Localisation Facile',
             description: 'Trouvez facilement les Open Mats près de chez vous.'
         },
         {
-            icon: <FaGraduationCap className="w-8 h-8 text-primary-600" />,
+            icon: <FaGraduationCap className="w-8 h-8 text-gray-600" />,
             title: 'Tous Niveaux',
             description: 'Des événements adaptés à tous les niveaux, du débutant au confirmé.'
         },
         {
-            icon: <FaHeart className="w-8 h-8 text-primary-600" />,
+            icon: <FaHeart className="w-8 h-8 text-gray-600" />,
             title: 'Passion Partagée',
             description: 'Partagez votre passion pour le grappling avec d\'autres pratiquants.'
         },
         {
-            icon: <FaHandshake className="w-8 h-8 text-primary-600" />,
+            icon: <FaHandshake className="w-8 h-8 text-gray-600" />,
             title: 'Échange & Partage',
             description: 'Apprenez et échangez avec des partenaires de différents clubs.'
         }
@@ -71,7 +71,6 @@ const AboutPage = () => {
             <main className="min-h-screen bg-gray-50">
                 {/* Hero Section */}
 
-
                 {/* Mission Section */}
                 <section
                     ref={missionRef}
@@ -108,7 +107,7 @@ const AboutPage = () => {
                         transition={{ duration: 0.5 }}
                     >
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                            <article className="bg-white rounded-xl shadow-sm p-8 hover:shadow-lg transition-shadow duration-300">
+                            <article className="bg-white rounded-xl shadow-sm p-8 transition-shadow duration-300">
                                 <h2 id="openmat-title" className="text-2xl font-bold text-gray-900 mb-6">Qu'est-ce qu'un Open Mat ?</h2>
                                 <p className="text-gray-600 mb-8">
                                     Une session d'entraînement libre où les participants peuvent pratiquer sans cours structuré, sous forme de sparring ou d'échanges techniques.
@@ -116,20 +115,20 @@ const AboutPage = () => {
 
                                 <h3 className="text-2xl font-bold text-gray-900 mb-6">Comment ça marche ?</h3>
                                 <ul className="space-y-4 text-gray-600">
-                                    <li className="flex items-start group hover:text-primary-600 transition-colors duration-300">
-                                        <FaMapMarkerAlt className="w-5 h-5 text-primary-600 mt-1 mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
+                                    <li className="flex items-start group transition-colors duration-300">
+                                        <FaMapMarkerAlt className="w-5 h-5 text-black mt-1 mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
                                         <span>Les clubs, coachs ou pratiquants peuvent ajouter un Open Mat.</span>
                                     </li>
-                                    <li className="flex items-start group hover:text-primary-600 transition-colors duration-300">
-                                        <FaCalendarAlt className="w-5 h-5 text-primary-600 mt-1 mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
+                                    <li className="flex items-start group hover:text-gray-900 transition-colors duration-300">
+                                        <FaCalendarAlt className="w-5 h-5 text-black mt-1 mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
                                         <span>Les informations sont partagées avec toute la communauté.</span>
                                     </li>
-                                    <li className="flex items-start group hover:text-primary-600 transition-colors duration-300">
-                                        <FaGraduationCap className="w-5 h-5 text-primary-600 mt-1 mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
+                                    <li className="flex items-start group hover:text-gray-900 transition-colors duration-300">
+                                        <FaGraduationCap className="w-5 h-5 text-black mt-1 mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
                                         <span>Les pratiquants peuvent rechercher et filtrer les Open Mats.</span>
                                     </li>
-                                    <li className="flex items-start group hover:text-primary-600 transition-colors duration-300">
-                                        <FaHandshake className="w-5 h-5 text-primary-600 mt-1 mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
+                                    <li className="flex items-start group hover:text-gray-900 transition-colors duration-300">
+                                        <FaHandshake className="w-5 h-5 text-black mt-1 mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
                                         <span>Tout le monde peut participer selon les conditions indiquées.</span>
                                     </li>
                                 </ul>
@@ -155,15 +154,15 @@ const AboutPage = () => {
                                 {features.map((feature, index) => (
                                     <motion.article
                                         key={index}
-                                        className="relative group bg-white p-8 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+                                        className="relative group bg-white p-8 rounded-xl shadow-sm hover:shadow-lg hover:shadow-gray-200 transition-all duration-300 hover:-translate-y-1"
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={featuresInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
                                         transition={{ duration: 0.5, delay: index * 0.1 }}
                                     >
-                                        <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary-50 mb-6 group-hover:bg-primary-100 transition-colors duration-300">
+                                        <div className="flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 mb-6 group-hover:bg-gray-100 transition-colors duration-300">
                                             {feature.icon}
                                         </div>
-                                        <h3 className="text-xl font-semibold text-gray-900 mb-3 group-hover:text-primary-600 transition-colors duration-300">
+                                        <h3 className="text-xl font-semibold text-gray-900 mb-3 group-hover:text-gray-900 transition-colors duration-300">
                                             {feature.title}
                                         </h3>
                                         <p className="text-gray-600">
@@ -188,26 +187,26 @@ const AboutPage = () => {
                         transition={{ duration: 0.5 }}
                     >
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                            <article className="bg-white rounded-xl shadow-sm p-8 hover:shadow-lg transition-shadow duration-300">
+                            <article className="bg-white rounded-xl shadow-sm p-8 transition-shadow duration-300">
                                 <h2 id="privacy-title" className="text-2xl font-bold text-gray-900 mb-6">Politique de Confidentialité</h2>
                                 <p className="text-gray-600 mb-6">
                                     Chez Open Mat France, nous prenons la confidentialité de vos informations personnelles très au sérieux. Voici comment nous utilisons et protégeons vos données :
                                 </p>
                                 <ul className="space-y-4 text-gray-600">
-                                    <li className="flex items-start group hover:text-primary-600 transition-colors duration-300">
-                                        <FaShieldAlt className="w-5 h-5 text-primary-600 mt-1 mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
+                                    <li className="flex items-start group hover:text-gray-900 transition-colors duration-300">
+                                        <FaShieldAlt className="w-5 h-5 text-gray-600 mt-1 mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
                                         <span>Vos informations personnelles sont utilisées uniquement pour les besoins de la plateforme, comme la gestion des sessions et la communication.</span>
                                     </li>
-                                    <li className="flex items-start group hover:text-primary-600 transition-colors duration-300">
-                                        <FaShieldAlt className="w-5 h-5 text-primary-600 mt-1 mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
+                                    <li className="flex items-start group hover:text-gray-900 transition-colors duration-300">
+                                        <FaShieldAlt className="w-5 h-5 text-gray-600 mt-1 mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
                                         <span>Nous ne partageons pas vos informations avec des tiers sans votre consentement explicite.</span>
                                     </li>
-                                    <li className="flex items-start group hover:text-primary-600 transition-colors duration-300">
-                                        <FaShieldAlt className="w-5 h-5 text-primary-600 mt-1 mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
+                                    <li className="flex items-start group hover:text-gray-900 transition-colors duration-300">
+                                        <FaShieldAlt className="w-5 h-5 text-gray-600 mt-1 mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
                                         <span>Nous mettons en œuvre des mesures de sécurité pour protéger vos données contre les accès non autorisés et les pertes.</span>
                                     </li>
-                                    <li className="flex items-start group hover:text-primary-600 transition-colors duration-300">
-                                        <FaShieldAlt className="w-5 h-5 text-primary-600 mt-1 mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
+                                    <li className="flex items-start group hover:text-gray-900 transition-colors duration-300">
+                                        <FaShieldAlt className="w-5 h-5 text-gray-600 mt-1 mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
                                         <span>Vous avez le droit de consulter, de corriger ou de supprimer vos informations personnelles à tout moment en nous contactant.</span>
                                     </li>
                                 </ul>
@@ -238,7 +237,7 @@ const AboutPage = () => {
                                 <div className="mt-8">
                                     <a
                                         href="mailto:adelloukal2@gmail.com"
-                                        className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-all duration-300 hover:scale-105"
+                                        className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-all duration-300"
                                         aria-label="Envoyer un email à Open Mat France"
                                     >
                                         <FaEnvelope className="w-5 h-5 mr-2" aria-hidden="true" />

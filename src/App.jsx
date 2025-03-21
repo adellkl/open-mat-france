@@ -19,6 +19,8 @@ import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
 import AddOpenMatPage from './pages/AddOpenMatPage';
 import FavoritesPage from './pages/FavoritesPage';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
 import PrivateRoute from './components/auth/PrivateRoute';
 import AdminRoute from './components/auth/AdminRoute';
 
@@ -68,6 +70,8 @@ const App = () => {
                                                 <Route path="/about" element={<AboutPage />} />
                                                 <Route path="/login" element={<LoginPage />} />
                                                 <Route path="/signup" element={<SignUpPage />} />
+                                                <Route path="/privacy" element={<PrivacyPage />} />
+                                                <Route path="/terms" element={<TermsPage />} />
                                                 <Route
                                                     path="/add"
                                                     element={

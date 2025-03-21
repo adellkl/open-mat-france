@@ -71,28 +71,28 @@ const OpenMatCard = ({ openMat }) => {
             <div className="p-6">
                 <div className="space-y-3">
                     <div className="flex items-center text-gray-600">
-                        <FaMapMarkerAlt className="w-5 h-5 mr-2 text-primary-500" />
+                        <FaMapMarkerAlt className="w-5 h-5 mr-2 text-gray-900" />
                         <span className="group-hover:text-gray-900 transition-colors duration-300">{openMat.city}</span>
                     </div>
 
                     <div className="flex items-center text-gray-600">
-                        <FaGraduationCap className="w-5 h-5 mr-2 text-primary-500" />
+                        <FaGraduationCap className="w-5 h-5 mr-2 text-gray-900" />
                         <span className="group-hover:text-gray-900 transition-colors duration-300">{openMat.level}</span>
                     </div>
 
                     <div className="flex items-center text-gray-600">
-                        <FaCalendarAlt className="w-5 h-5 mr-2 text-primary-500" />
+                        <FaCalendarAlt className="w-5 h-5 mr-2 text-gray-900" />
                         <span className="group-hover:text-gray-900 transition-colors duration-300">{formatDate(openMat.date)}</span>
                     </div>
 
                     <div className="flex items-center text-gray-600">
-                        <FaClock className="w-5 h-5 mr-2 text-primary-500" />
+                        <FaClock className="w-5 h-5 mr-2 text-gray-900" />
                         <span className="group-hover:text-gray-900 transition-colors duration-300">{formatTime(openMat.start_time)} - {formatTime(openMat.end_time)}</span>
                     </div>
 
                     {openMat.max_participants && (
                         <div className="flex items-center text-gray-600">
-                            <FaUsers className="w-5 h-5 mr-2 text-primary-500" />
+                            <FaUsers className="w-5 h-5 mr-2 text-gray-900" />
                             <span className="group-hover:text-gray-900 transition-colors duration-300">Max {openMat.max_participants} participants</span>
                         </div>
                     )}
@@ -133,45 +133,45 @@ const OpenMatCard = ({ openMat }) => {
                                 <h3 className="text-xl font-bold text-gray-900">{details?.club_name}</h3>
                                 <div className="space-y-3">
                                     <div className="flex items-center text-gray-600">
-                                        <FaMapMarkerAlt className="w-5 h-5 mr-2 text-primary-500" />
+                                        <FaMapMarkerAlt className="w-5 h-5 mr-2 text-gray-900" />
                                         <span>{details?.address}, {details?.city}</span>
                                     </div>
                                     <div className="flex items-center text-gray-600">
-                                        <FaCalendarAlt className="w-5 h-5 mr-2 text-primary-500" />
+                                        <FaCalendarAlt className="w-5 h-5 mr-2 text-gray-900" />
                                         <span>{formatDate(details?.date)}</span>
                                     </div>
                                     <div className="flex items-center text-gray-600">
-                                        <FaClock className="w-5 h-5 mr-2 text-primary-500" />
+                                        <FaClock className="w-5 h-5 mr-2 text-gray-900" />
                                         <span>{formatTime(details?.start_time)} - {formatTime(details?.end_time)}</span>
                                     </div>
                                     <div className="flex items-center text-gray-600">
-                                        <FaGraduationCap className="w-5 h-5 mr-2 text-primary-500" />
+                                        <FaGraduationCap className="w-5 h-5 mr-2 text-gray-900" />
                                         <span>{details?.level}</span>
                                     </div>
                                     {details?.coach_name && (
                                         <div className="flex items-center text-gray-600">
-                                            <FaUserTie className="w-5 h-5 mr-2 text-primary-500" />
+                                            <FaUserTie className="w-5 h-5 mr-2 text-gray-900" />
                                             <span>{details?.coach_name}</span>
                                         </div>
                                     )}
                                     {details?.price && (
                                         <div className="flex items-center text-gray-600">
-                                            <FaEuroSign className="w-5 h-5 mr-2 text-primary-500" />
+                                            <FaEuroSign className="w-5 h-5 mr-2 text-gray-900" />
                                             <span>{details?.price}€</span>
                                         </div>
                                     )}
                                     {details?.contact_phone && (
                                         <div className="flex items-center text-gray-600">
-                                            <FaPhone className="w-5 h-5 mr-2 text-primary-500" />
-                                            <a href={`tel:${details?.contact_phone}`} className="hover:text-primary-600">
+                                            <FaPhone className="w-5 h-5 mr-2 text-gray-900" />
+                                            <a href={`tel:${details?.contact_phone}`} className="hover:text-gray-900">
                                                 {details?.contact_phone}
                                             </a>
                                         </div>
                                     )}
                                     {details?.contact_email && (
                                         <div className="flex items-center text-gray-600">
-                                            <FaEnvelope className="w-5 h-5 mr-2 text-primary-500" />
-                                            <a href={`mailto:${details?.contact_email}`} className="hover:text-primary-600">
+                                            <FaEnvelope className="w-5 h-5 mr-2 text-gray-900" />
+                                            <a href={`mailto:${details?.contact_email}`} className="hover:text-gray-900">
                                                 {details?.contact_email}
                                             </a>
                                         </div>

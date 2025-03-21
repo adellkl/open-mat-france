@@ -73,7 +73,7 @@ const Navbar = () => {
                             <Link
                                 key={index}
                                 to={item.path}
-                                className={`text-sm font-medium ${location.pathname === item.path ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-700 hover:text-green-600'} mt-2`}
+                                className={`text-sm font-medium ${location.pathname === item.path ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-700 '} mt-2`}
                             >
                                 {item.text}
                             </Link>
@@ -150,7 +150,7 @@ const Navbar = () => {
                                 key={index}
                                 to={item.path}
                                 onClick={toggleDrawer(false)}
-                                className={`text-lg font-medium ${location.pathname === item.path ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-700 hover:text-primary-600'} py-2 border-b border-gray-200`}
+                                className={`text-lg font-medium ${location.pathname === item.path ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-700 '} py-2 border-b border-gray-200`}
                             >
                                 {item.text}
                             </Link>
