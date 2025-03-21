@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Helmet } from 'react-helmet';
-import { createOpenMat } from '../services/api'; // Assurez-vous que le chemin est correct
+import { createOpenMat, supabase } from '../services/api';
 
 const AddOpenMatPage = () => {
     const navigate = useNavigate();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formError, setFormError] = useState(null);
     const [formSuccess, setFormSuccess] = useState(false);
+    const [selectedImage, setSelectedImage] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
 
     const [formData, setFormData] = useState({
         club_name: '',
@@ -56,6 +58,71 @@ const AddOpenMatPage = () => {
         }
     };
 
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setSelectedImage(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const uploadImage = async (file) => {
+        try {
+            console.log('Début de la fonction uploadImage');
+            console.log('Type de fichier:', file.type);
+            console.log('Taille du fichier:', file.size);
+
+            // Vérifier le type de fichier
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                throw new Error('Type de fichier non supporté. Utilisez JPEG, PNG, GIF ou WEBP.');
+            }
+
+            // Vérifier la taille du fichier (5MB max)
+            if (file.size > 5 * 1024 * 1024) {
+                throw new Error('Le fichier est trop volumineux. Taille maximum : 5MB');
+            }
+
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            console.log('Tentative d\'upload du fichier:', { fileName, filePath });
+
+            const { error: uploadError, data } = await supabase.storage
+                .from('open-mat-images')
+                .upload(filePath, file, {
+                    contentType: file.type,
+                    cacheControl: '3600',
+                    upsert: false
+                });
+
+            if (uploadError) {
+                console.error('Erreur Supabase Storage:', uploadError);
+                throw new Error(`Erreur d'upload: ${uploadError.message}`);
+            }
+
+            console.log('Upload réussi, récupération de l\'URL...');
+            const { data: { publicUrl } } = supabase.storage
+                .from('open-mat-images')
+                .getPublicUrl(filePath);
+
+            if (!publicUrl) {
+                throw new Error('Impossible de récupérer l\'URL publique de l\'image');
+            }
+
+            console.log('URL publique récupérée:', publicUrl);
+            return publicUrl;
+        } catch (error) {
+            console.error('Erreur détaillée lors de l\'upload de l\'image:', error);
+            throw new Error(`Erreur lors de l'upload de l'image: ${error.message}`);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -68,30 +135,48 @@ const AddOpenMatPage = () => {
             return;
         }
 
-        // Récupérer une image aléatoire avec les tags "Jiu-Jitsu Brésilien" et "Grappling"
-        const imageUrl = await fetchRandomImage('Jiu-Jitsu Brésilien, Grappling');
-        if (imageUrl) {
-            setFormData({
+        try {
+            let imageUrl = formData.image_url;
+
+            // Si une image a été sélectionnée, l'uploader
+            if (selectedImage) {
+                try {
+                    imageUrl = await uploadImage(selectedImage);
+                } catch (error) {
+                    console.error('Erreur lors de l\'upload de l\'image:', error);
+                    setFormError('Erreur lors de l\'upload de l\'image. Veuillez réessayer.');
+                    setIsSubmitting(false);
+                    return;
+                }
+            }
+
+            // Vérifier si l'utilisateur est connecté
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+            if (sessionError) {
+                throw new Error('Erreur d\'authentification. Veuillez vous connecter.');
+            }
+
+            const result = await createOpenMat({
                 ...formData,
                 image_url: imageUrl
             });
-        }
-
-        try {
-            const result = await createOpenMat(formData);
 
             if (result) {
                 setFormSuccess(true);
-                // Redirection vers la page de détail après 2 secondes
                 setTimeout(() => {
-                    navigate(`/detail/${result.id}`);
+                    navigate('/');
                 }, 2000);
             } else {
                 throw new Error('Erreur lors de la création de l\'Open Mat');
             }
         } catch (error) {
             console.error('Erreur de soumission:', error);
-            setFormError('Une erreur est survenue lors de la création de l\'Open Mat. Veuillez réessayer.');
+            if (error.message.includes('authentication')) {
+                setFormError('Veuillez vous connecter pour créer un Open Mat.');
+            } else {
+                setFormError('Une erreur est survenue lors de la création de l\'Open Mat. Veuillez réessayer.');
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -110,7 +195,7 @@ const AddOpenMatPage = () => {
                         <div className="ml-3">
                             <h3 className="text-sm font-medium text-green-800">Open Mat créé avec succès</h3>
                             <div className="mt-2 text-sm text-green-700">
-                                <p>Votre Open Mat a été ajouté à la liste. Vous allez être redirigé vers la page de détail.</p>
+                                <p>Votre Open Mat a été ajouté à la liste. Vous allez être redirigé vers la page d'accueil.</p>
                             </div>
                         </div>
                     </div>
@@ -380,6 +465,36 @@ const AddOpenMatPage = () => {
                                             placeholder="https://..."
                                             className="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                                         />
+                                    </div>
+
+                                    <div className="col-span-6">
+                                        <label htmlFor="image" className="block text-sm font-medium text-gray-700">
+                                            Image de l'Open Mat
+                                        </label>
+                                        <div className="mt-1 flex items-center">
+                                            <input
+                                                type="file"
+                                                name="image"
+                                                id="image"
+                                                accept="image/*"
+                                                onChange={handleImageChange}
+                                                className="block w-full text-sm text-gray-500
+                                                    file:mr-4 file:py-2 file:px-4
+                                                    file:rounded-md file:border-0
+                                                    file:text-sm file:font-semibold
+                                                    file:bg-primary-50 file:text-primary-700
+                                                    hover:file:bg-primary-100"
+                                            />
+                                        </div>
+                                        {imagePreview && (
+                                            <div className="mt-2">
+                                                <img
+                                                    src={imagePreview}
+                                                    alt="Aperçu"
+                                                    className="h-32 w-auto object-cover rounded-md"
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
