@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { createOpenMat, supabase } from '../services/api';
+import debounce from 'lodash/debounce';
 
 const AddOpenMatPage = () => {
     const navigate = useNavigate();
@@ -10,6 +11,8 @@ const AddOpenMatPage = () => {
     const [formSuccess, setFormSuccess] = useState(false);
     const [selectedImage, setSelectedImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
+    const [addressSuggestions, setAddressSuggestions] = useState([]);
+    const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
 
     const [formData, setFormData] = useState({
         club_name: '',
@@ -29,12 +32,96 @@ const AddOpenMatPage = () => {
         image_url: ''
     });
 
+    const debouncedSearch = useCallback(
+        debounce((query) => {
+            if (!query || query.length < 2) {
+                setAddressSuggestions([]);
+                return;
+            }
+
+            setIsLoadingAddresses(true);
+            fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=fr&limit=20&addressdetails=1&extratags=1&namedetails=1&featuretype=address,highway,place,suburb,tourism,leisure,sport&bounded=1&viewbox=-5.1,41.3,9.6,51.1&polygon_geojson=1`,
+                {
+                    headers: {
+                        'Accept-Language': 'fr'
+                    }
+                }
+            )
+                .then(response => response.json())
+                .then(data => {
+                    setAddressSuggestions(data);
+                    setIsLoadingAddresses(false);
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la recherche d\'adresse:', error);
+                    setIsLoadingAddresses(false);
+                });
+        }, 300),
+        []
+    );
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({
             ...formData,
             [name]: value
         });
+
+        if (name === 'address') {
+            debouncedSearch(value);
+        }
+    };
+
+    const formatAddress = (suggestion) => {
+        const address = suggestion.address;
+        let parts = [];
+
+        // Numéro et rue
+        if (address.house_number) {
+            parts.push(address.house_number);
+        }
+        if (address.road || address.street) {
+            parts.push(address.road || address.street);
+        }
+
+        // Complément d'adresse (si présent)
+        if (address.suburb) {
+            parts.push(address.suburb);
+        }
+
+        // Code postal et ville
+        if (address.postcode && address.city) {
+            parts.push(`${address.postcode} ${address.city}`);
+        } else if (address.town) {
+            parts.push(address.town);
+        } else if (address.village) {
+            parts.push(address.village);
+        }
+
+        // Département/Région
+        if (address.state) {
+            parts.push(address.state);
+        }
+
+        // Si on n'a pas pu construire une adresse, utiliser le display_name
+        if (parts.length === 0) {
+            return suggestion.display_name;
+        }
+
+        return parts.join(', ');
+    };
+
+    const handleAddressSelect = (suggestion) => {
+        if (suggestion) {
+            const address = suggestion.address;
+            setFormData({
+                ...formData,
+                address: suggestion.display_name, // Utiliser l'adresse complète
+                city: address.city || address.town || address.village || ''
+            });
+            setAddressSuggestions([]);
+        }
     };
 
     const handleImageChange = (e) => {
@@ -276,14 +363,76 @@ const AddOpenMatPage = () => {
                                         <label htmlFor="address" className="block text-sm font-medium text-gray-700">
                                             Adresse
                                         </label>
-                                        <input
-                                            type="text"
-                                            name="address"
-                                            id="address"
-                                            value={formData.address}
-                                            onChange={handleChange}
-                                            className="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                                        />
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                name="address"
+                                                id="address"
+                                                value={formData.address}
+                                                onChange={handleChange}
+                                                className="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                                                placeholder="Commencez à taper une adresse..."
+                                                autoComplete="off"
+                                            />
+                                            {isLoadingAddresses && (
+                                                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600"></div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {addressSuggestions.length > 0 && (
+                                            <div className="mt-1 bg-white rounded-md shadow-lg border border-gray-200">
+                                                <ul className="max-h-60 overflow-auto divide-y divide-gray-100">
+                                                    {addressSuggestions.map((suggestion, index) => (
+                                                        <li
+                                                            key={index}
+                                                            onClick={() => handleAddressSelect(suggestion)}
+                                                            className="px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors duration-150 ease-in-out"
+                                                        >
+                                                            <div className="flex flex-col space-y-1">
+                                                                <div className="flex items-start">
+                                                                    <svg className="w-5 h-5 text-gray-400 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                    </svg>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p className="text-sm font-medium text-gray-900">
+                                                                            {formatAddress(suggestion)}
+                                                                        </p>
+                                                                        <div className="mt-1 flex flex-wrap gap-2 text-xs text-gray-500">
+                                                                            {suggestion.address.state && (
+                                                                                <span className="inline-flex items-center bg-gray-50 px-2 py-0.5 rounded">
+                                                                                    <svg className="w-3.5 h-3.5 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                                    </svg>
+                                                                                    {suggestion.address.state}
+                                                                                </span>
+                                                                            )}
+                                                                            {suggestion.address.postcode && (
+                                                                                <span className="inline-flex items-center bg-gray-50 px-2 py-0.5 rounded">
+                                                                                    <svg className="w-3.5 h-3.5 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                                                                    </svg>
+                                                                                    {suggestion.address.postcode}
+                                                                                </span>
+                                                                            )}
+                                                                            {suggestion.address.country && (
+                                                                                <span className="inline-flex items-center bg-gray-50 px-2 py-0.5 rounded">
+                                                                                    <svg className="w-3.5 h-3.5 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                                    </svg>
+                                                                                    {suggestion.address.country}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="col-span-6 sm:col-span-2">
@@ -399,7 +548,7 @@ const AddOpenMatPage = () => {
                                             value={formData.description}
                                             onChange={handleChange}
                                             className="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border border-gray-300 rounded-md"
-                                            placeholder="Informations supplémentaires, thème, particularités..."
+                                            placeholder="Précisez si par exemple, l'open mat c'est tout les dimanche..."
                                         />
                                     </div>
 

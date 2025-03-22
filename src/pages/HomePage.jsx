@@ -1,18 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { MagnifyingGlassIcon, PlusCircleIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, PlusCircleIcon, ChevronLeftIcon, ChevronRightIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import OpenMatCard from '../components/OpenMatCard';
 import { supabase } from '../services/supabaseClient';
-import { Typography } from '@mui/material';
+import { Typography, Modal, Button } from '@mui/material';
 import { FaFilter } from 'react-icons/fa';
-import FilterModal from '../components/FilterModal';
 
 const ITEMS_PER_PAGE = 6;
 
 const HomePage = () => {
     const [openMats, setOpenMats] = useState([]);
-    const [filteredOpenMats, setFilteredOpenMats] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -25,56 +23,50 @@ const HomePage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [user, setUser] = useState(null);
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+    const [citySuggestions, setCitySuggestions] = useState([]);
+    const [localFilters, setLocalFilters] = useState(filters);
 
     useEffect(() => {
-        let mounted = true;
-
         const fetchOpenMats = async () => {
             try {
-                console.log('Début de fetchOpenMats...');
                 let query = supabase
                     .from('open_mats')
                     .select('*')
                     .order('date', { ascending: true });
 
-                // Appliquer les filtres
                 if (filters.city) {
                     query = query.ilike('city', `%${filters.city}%`);
                 }
                 if (filters.level) {
                     query = query.eq('level', filters.level);
                 }
-                if (filters.date) {
-                    query = query.eq('date', filters.date);
-                }
                 if (filters.discipline) {
                     query = query.eq('discipline', filters.discipline);
                 }
+                if (filters.date) {
+                    const selectedDate = new Date(filters.date);
+                    const startOfDay = new Date(selectedDate.setHours(0, 0, 0, 0)).toISOString();
+                    const endOfDay = new Date(selectedDate.setHours(23, 59, 59, 999)).toISOString();
+                    query = query.gte('date', startOfDay).lte('date', endOfDay);
+                }
 
                 const { data, error } = await query;
-
                 if (error) throw error;
-                console.log('Open Mats récupérés avec succès:', data);
-                if (mounted) {
-                    setOpenMats(data || []);
-                    setFilteredOpenMats(data || []);
-                }
+                setOpenMats(data || []);
+
+                const uniqueCities = [...new Set(data.map(mat => mat.city))].sort();
+                setCitySuggestions(uniqueCities);
             } catch (error) {
-                console.error('Erreur dans fetchOpenMats:', error);
-                if (mounted) {
-                    setError(error.message);
-                }
+                setError(error.message);
             } finally {
-                if (mounted) {
-                    setLoading(false);
-                }
+                setLoading(false);
             }
         };
 
         const fetchUser = async () => {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
-                if (mounted && session) {
+                if (session) {
                     setUser(session.user);
                 }
             } catch (error) {
@@ -86,59 +78,36 @@ const HomePage = () => {
         fetchUser();
 
         const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-            if (mounted) {
-                if (event === 'SIGNED_OUT') {
-                    setUser(null);
-                } else if (event === 'SIGNED_IN') {
-                    setUser(session.user);
-                }
+            if (event === 'SIGNED_OUT') {
+                setUser(null);
+            } else if (event === 'SIGNED_IN') {
+                setUser(session.user);
             }
         });
 
         return () => {
-            mounted = false;
             if (authListener?.subscription) {
                 authListener.subscription.unsubscribe();
             }
         };
     }, [filters]);
 
-    const applyFilters = useCallback(() => {
-        let results = [...openMats];
+    const filteredOpenMats = useMemo(() => {
+        const term = searchTerm.toLowerCase().trim();
+        return openMats.filter(mat => {
+            const matchesSearch = !term ||
+                mat.club_name?.toLowerCase().includes(term) ||
+                mat.city?.toLowerCase().includes(term) ||
+                mat.coach_name?.toLowerCase().includes(term) ||
+                (mat.description && mat.description.toLowerCase().includes(term));
 
-        if (searchTerm) {
-            const term = searchTerm.toLowerCase();
-            results = results.filter(
-                mat => mat.club_name.toLowerCase().includes(term) ||
-                    mat.city.toLowerCase().includes(term) ||
-                    mat.coach_name.toLowerCase().includes(term) ||
-                    (mat.description && mat.description.toLowerCase().includes(term))
-            );
-        }
+            const matchesFilters = (!filters.discipline || mat.discipline === filters.discipline) &&
+                (!filters.level || mat.level === filters.level) &&
+                (!filters.city || mat.city.toLowerCase() === filters.city.toLowerCase());
 
-        if (filters.discipline) {
-            results = results.filter(mat => mat.discipline === filters.discipline);
-        }
-
-        if (filters.level) {
-            results = results.filter(mat => mat.level === filters.level);
-        }
-
-        if (filters.city) {
-            results = results.filter(mat => mat.city === filters.city);
-        }
-
-        if (filters.date) {
-            results = results.filter(mat => new Date(mat.date) === new Date(filters.date));
-        }
-
-        setFilteredOpenMats(results);
-        setCurrentPage(1);
+            return matchesSearch && matchesFilters;
+        });
     }, [searchTerm, filters, openMats]);
-
-    useEffect(() => {
-        applyFilters();
-    }, [searchTerm, filters, applyFilters]);
 
     const indexOfLastOpenMat = currentPage * ITEMS_PER_PAGE;
     const indexOfFirstOpenMat = indexOfLastOpenMat - ITEMS_PER_PAGE;
@@ -150,8 +119,41 @@ const HomePage = () => {
     };
 
     const handleApplyFilters = (newFilters) => {
-        setFilters(newFilters);
-        applyFilters();
+        const validatedFilters = {
+            ...newFilters,
+            city: newFilters.city?.trim(),
+            level: newFilters.level?.trim(),
+            discipline: newFilters.discipline?.trim(),
+            date: newFilters.date || ''
+        };
+        setFilters(validatedFilters);
+        setIsFilterModalOpen(false);
+        setCurrentPage(1);
+    };
+
+    const handleResetFilters = () => {
+        const emptyFilters = {
+            city: '',
+            level: '',
+            date: '',
+            discipline: ''
+        };
+        setFilters(emptyFilters);
+        setLocalFilters(emptyFilters);
+        setSearchTerm('');
+        setCurrentPage(1);
+    };
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setLocalFilters(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleApply = () => {
+        handleApplyFilters(localFilters);
     };
 
     return (
@@ -214,14 +216,82 @@ const HomePage = () => {
                         />
                     </div>
 
-                    <button
-                        onClick={() => setIsFilterModalOpen(true)}
-                        className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                    >
-                        <FaFilter className="mr-2 h-5 w-5 text-gray-400" />
-                        Filtres
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => {
+                                setLocalFilters(filters);
+                                setIsFilterModalOpen(true);
+                            }}
+                            className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200"
+                        >
+                            <FaFilter className="mr-2 h-5 w-5 text-gray-400" />
+                            Filtres
+                            {(filters.city || filters.level || filters.date || filters.discipline) && (
+                                <span className="ml-2 px-2 py-0.5 text-xs font-semibold bg-primary-100 text-primary-800 rounded-full">
+                                    {Object.values(filters).filter(Boolean).length}
+                                </span>
+                            )}
+                        </button>
+
+                        <button
+                            onClick={handleResetFilters}
+                            className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200"
+                        >
+                            <XMarkIcon className="mr-2 h-5 w-5 text-gray-400" />
+                            Réinitialiser
+                        </button>
+                    </div>
                 </div>
+
+                {/* Affichage des filtres actifs */}
+                {(filters.city || filters.level || filters.date || filters.discipline) && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                        {filters.city && (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                                Ville: {filters.city}
+                                <button
+                                    onClick={() => handleApplyFilters({ ...filters, city: '' })}
+                                    className="ml-2 text-blue-600 hover:text-blue-800"
+                                >
+                                    <XMarkIcon className="h-4 w-4" />
+                                </button>
+                            </span>
+                        )}
+                        {filters.level && (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                Niveau: {filters.level}
+                                <button
+                                    onClick={() => handleApplyFilters({ ...filters, level: '' })}
+                                    className="ml-2 text-green-600 hover:text-green-800"
+                                >
+                                    <XMarkIcon className="h-4 w-4" />
+                                </button>
+                            </span>
+                        )}
+                        {filters.date && (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                                Date: {new Date(filters.date).toLocaleDateString('fr-FR')}
+                                <button
+                                    onClick={() => handleApplyFilters({ ...filters, date: '' })}
+                                    className="ml-2 text-purple-600 hover:text-purple-800"
+                                >
+                                    <XMarkIcon className="h-4 w-4" />
+                                </button>
+                            </span>
+                        )}
+                        {filters.discipline && (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
+                                Discipline: {filters.discipline}
+                                <button
+                                    onClick={() => handleApplyFilters({ ...filters, discipline: '' })}
+                                    className="ml-2 text-orange-600 hover:text-orange-800"
+                                >
+                                    <XMarkIcon className="h-4 w-4" />
+                                </button>
+                            </span>
+                        )}
+                    </div>
+                )}
 
                 <div className="mt-8">
                     {loading ? (
@@ -314,12 +384,154 @@ const HomePage = () => {
                 </div>
             </div>
 
-            <FilterModal
-                isOpen={isFilterModalOpen}
-                onClose={() => setIsFilterModalOpen(false)}
-                onApplyFilters={handleApplyFilters}
-                filters={filters}
-            />
+            <Modal open={isFilterModalOpen} onClose={() => setIsFilterModalOpen(false)}>
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-8 rounded-xl shadow-2xl w-96 max-h-[90vh] overflow-y-auto">
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                            <FaFilter className="mr-2 text-primary-600" />
+                            Filtres
+                        </h2>
+                        <button
+                            onClick={() => setIsFilterModalOpen(false)}
+                            className="text-gray-400 hover:text-gray-500 transition-colors duration-200"
+                        >
+                            <XMarkIcon className="h-6 w-6" />
+                        </button>
+                    </div>
+
+                    <div className="space-y-6">
+                        {/* Ville */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                                <svg className="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                Ville
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    name="city"
+                                    value={localFilters.city}
+                                    onChange={handleInputChange}
+                                    placeholder="Toutes les villes"
+                                    className="block w-full pl-4 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm transition-colors duration-200"
+                                />
+                                {localFilters.city && !citySuggestions.some(city => city.toLowerCase() === localFilters.city.toLowerCase()) && (
+                                    <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                        {citySuggestions
+                                            .filter(city => city.toLowerCase().includes(localFilters.city.toLowerCase()))
+                                            .map((city, index) => (
+                                                <li
+                                                    key={index}
+                                                    onClick={() => setLocalFilters(prev => ({ ...prev, city }))}
+                                                    className="px-4 py-2 cursor-pointer hover:bg-gray-50 transition-colors duration-200"
+                                                >
+                                                    {city}
+                                                </li>
+                                            ))}
+                                    </ul>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Niveau */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                                <svg className="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Niveau
+                            </label>
+                            <select
+                                name="level"
+                                value={localFilters.level}
+                                onChange={handleInputChange}
+                                className="block w-full pl-4 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm transition-colors duration-200"
+                            >
+                                <option value="">Tous les niveaux</option>
+                                <option value="débutant">Débutant</option>
+                                <option value="intermédiaire">Intermédiaire</option>
+                                <option value="avancé">Avancé</option>
+                            </select>
+                        </div>
+
+                        {/* Date */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                                <svg className="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                Date
+                            </label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="date"
+                                    name="date"
+                                    value={localFilters.date}
+                                    onChange={handleInputChange}
+                                    className="block w-full pl-4 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm transition-colors duration-200"
+                                />
+                                <button
+                                    onClick={() => {
+                                        const today = new Date().toISOString().split('T')[0];
+                                        setLocalFilters(prev => ({
+                                            ...prev,
+                                            date: today
+                                        }));
+                                    }}
+                                    className="px-4 py-2.5 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-lg shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200 whitespace-nowrap"
+                                >
+                                    Aujourd'hui
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Discipline */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                                <svg className="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                </svg>
+                                Discipline
+                            </label>
+                            <select
+                                name="discipline"
+                                value={localFilters.discipline}
+                                onChange={handleInputChange}
+                                className="block w-full pl-4 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm transition-colors duration-200"
+                            >
+                                <option value="">Toutes les disciplines</option>
+                                <option value="jiu-jitsu">Jiu-Jitsu</option>
+                                <option value="grappling">Grappling</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="mt-8 flex justify-end space-x-4">
+                        <button
+                            onClick={() => {
+                                setLocalFilters({
+                                    city: '',
+                                    level: '',
+                                    date: '',
+                                    discipline: ''
+                                });
+                            }}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200"
+                        >
+                            Réinitialiser
+                        </button>
+                        <button
+                            onClick={handleApply}
+                            className="px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-lg shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200"
+                        >
+                            Appliquer
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };

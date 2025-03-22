@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import { HelmetProvider } from 'react-helmet-async';
+import { LoadScript } from '@react-google-maps/api';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider as CustomThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -63,34 +64,36 @@ const App = () => {
                             <OfflineProvider>
                                 <ThemeProvider theme={theme}>
                                     <CssBaseline />
-                                    <Router>
-                                        <AppLayout>
-                                            <Routes>
-                                                <Route path="/" element={<HomePage />} />
-                                                <Route path="/about" element={<AboutPage />} />
-                                                <Route path="/login" element={<LoginPage />} />
-                                                <Route path="/signup" element={<SignUpPage />} />
-                                                <Route path="/privacy" element={<PrivacyPage />} />
-                                                <Route path="/terms" element={<TermsPage />} />
-                                                <Route
-                                                    path="/add"
-                                                    element={
-                                                        <PrivateRoute>
-                                                            <AddOpenMatPage />
-                                                        </PrivateRoute>
-                                                    }
-                                                />
-                                                <Route
-                                                    path="/favorites"
-                                                    element={
-                                                        <PrivateRoute>
-                                                            <FavoritesPage />
-                                                        </PrivateRoute>
-                                                    }
-                                                />
-                                            </Routes>
-                                        </AppLayout>
-                                    </Router>
+                                    <LoadScript googleMapsApiKey="YOUR_GOOGLE_MAPS_API_KEY" libraries={['places']}>
+                                        <Router>
+                                            <AppLayout>
+                                                <Routes>
+                                                    <Route path="/" element={<HomePage />} />
+                                                    <Route path="/about" element={<AboutPage />} />
+                                                    <Route path="/login" element={<LoginPage />} />
+                                                    <Route path="/signup" element={<SignUpPage />} />
+                                                    <Route path="/privacy" element={<PrivacyPage />} />
+                                                    <Route path="/terms" element={<TermsPage />} />
+                                                    <Route
+                                                        path="/add"
+                                                        element={
+                                                            <PrivateRoute>
+                                                                <AddOpenMatPage />
+                                                            </PrivateRoute>
+                                                        }
+                                                    />
+                                                    <Route
+                                                        path="/favorites"
+                                                        element={
+                                                            <PrivateRoute>
+                                                                <FavoritesPage />
+                                                            </PrivateRoute>
+                                                        }
+                                                    />
+                                                </Routes>
+                                            </AppLayout>
+                                        </Router>
+                                    </LoadScript>
                                 </ThemeProvider>
                             </OfflineProvider>
                         </AccessibilityProvider>

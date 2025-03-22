@@ -56,7 +56,7 @@ const OpenMatCard = ({ openMat }) => {
             {/* Image */}
             <div className="relative h-48 overflow-hidden">
                 <img
-                    src={openMat.image_url || 'https://images.unsplash.com/photo-1578768079059-4b3e6b7c3b8b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'}
+                    src={openMat.image_url || 'https://www.ffst-multisports.com/images/commissions/jujitsu-bresilien.png'}
                     alt={openMat.club_name}
                     className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
                 />
@@ -94,6 +94,12 @@ const OpenMatCard = ({ openMat }) => {
                         <div className="flex items-center text-gray-600">
                             <FaUsers className="w-5 h-5 mr-2 text-gray-900" />
                             <span className="group-hover:text-gray-900 transition-colors duration-300">Max {openMat.max_participants} participants</span>
+                        </div>
+                    )}
+
+                    {openMat.description && (
+                        <div className="mt-4 text-sm text-gray-600 line-clamp-3">
+                            {openMat.description}
                         </div>
                     )}
                 </div>
